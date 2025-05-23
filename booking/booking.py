@@ -4,6 +4,10 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
+
+from booking.booking_filtration import BookingFiltration
+from booking.booking_report import BookingReport
 
 
 class Booking(webdriver.Chrome):
@@ -11,12 +15,6 @@ class Booking(webdriver.Chrome):
         super(Booking, self).__init__()
         self.implicitly_wait(10)
         self.maximize_window()
-
-    def land_first_page(self):
-        self.get(const.BASE_URL)
-
-    def __exit__(self, exc_type, exc, traceback):
-        self.quit()
 
     def land_first_page(self):
         self.get(const.BASE_URL)
@@ -59,14 +57,14 @@ class Booking(webdriver.Chrome):
             By.XPATH, ' //*[@id="indexsearch"]/div[2]/div/form/div/div[3]/div/button'
         )
         selection_element.click()
-        time.sleep(1)
+        time.sleep(0.5)
 
         while True:
 
-            decrese_adults = self.find_element(
+            decrease = self.find_element(
                 By.XPATH, '//*[@id=":ri:"]/div/div[1]/div[2]/button[1]'
             )
-            decrese_adults.click()
+            decrease.click()
 
             current_adults_element = self.find_element(By.ID, "group_adults")
             current_adults_value = int(current_adults_element.get_attribute("value"))
@@ -74,7 +72,7 @@ class Booking(webdriver.Chrome):
             if current_adults_value == 1:
                 break
 
-        time.sleep(1)
+        time.sleep(0.5)
 
         increase_adults = self.find_element(
             By.XPATH, '//*[@id=":ri:"]/div/div[1]/div[2]/button[2]'
@@ -95,13 +93,39 @@ class Booking(webdriver.Chrome):
 
         finally:
             done_button = self.find_element(
-                By.XPATH, '//*[@id=":ri:"]/button'
+                By.XPATH, "//span[normalize-space()='Done']"
             )
             done_button.click()
-            
+
     def search_hotels(self):
         search_button = self.find_element(
-            By.XPATH,
-            "//button[@type='submit']"
+            By.XPATH, "//span[normalize-space()='Search']"
         )
         search_button.click()
+
+        try:
+            button = WebDriverWait(self, 5).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//button[@aria-label='Close map']",
+                    )
+                )
+            )
+            button.click()
+        except NoSuchElementException:
+            pass
+
+    def apply_filters(self):
+        filtration = BookingFiltration(driver=self)
+        filtration.select_star_ratings([4, 5])
+        filtration.sorting_by_price()
+
+    def report_results(self):
+        time.sleep(3) 
+        hotel_boxes = self.find_elements(
+            By.CSS_SELECTOR, 'div[data-testid="property-card"]'
+        )
+
+        report = BookingReport(hotel_boxes)
+        report.pull_titles()
