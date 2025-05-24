@@ -104,7 +104,7 @@ class Booking(webdriver.Chrome):
         search_button.click()
 
         try:
-            button = WebDriverWait(self, 5).until(
+            button = WebDriverWait(self, 10).until(
                 EC.element_to_be_clickable(
                     (
                         By.XPATH,
